@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="1301218676 - Nur Muhammad Luthfi">    
+    <title>Cryptocurrency Ontology Visualization</title>    
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="container-fluid mt-5">
+        <h2 class="mb-4">Cryptocurrency Ontology Visualization</h2>
+        <div class="container mt-1 left-align-container" style="margin-left: -16px !important;">
+            <div class="input-group mb-3">
+                <!-- Search Button -->
+                <input type="text" class="form-control" id="searchInput" placeholder="Search by Name">
+                <button class="btn btn-primary" onclick="searchCryptocurrency()">Search</button>
+
+                <!-- Dropdwon  -->
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary dropdown-toggle" id="supplyStructureDropdown" type="button" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">Supply Structure</button>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="#" onclick="setSupplyStructureOption('Capped')">Capped</a>
+                        <a class="dropdown-item" href="#" onclick="setSupplyStructureOption('Uncapped')">Uncapped</a>
+                    </div>
+                </div>
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary dropdown-toggle" id="hashingAlgorithmDropdown" type="button" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">Hashing Algorithm</button>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="#" onclick="setHashingAlgorithmOption('SHA 256')">SHA 256</a>
+                        <a class="dropdown-item" href="#" onclick="setHashingAlgorithmOption('Ethash')">Ethash</a>
+                        <a class="dropdown-item" href="#" onclick="setHashingAlgorithmOption('No Hash Algorithm or Unidentified')">No Hash Algorithm or Unidentified</a>
+                    </div>
+                </div>
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary dropdown-toggle" id="countryOriginDropdown" type="button" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">Country Origin</button>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="#" onclick="setCountryOriginOption('Unknown or Unidentified')">Unknown or Unidentified</a>
+                        <a class="dropdown-item" href="#" onclick="setCountryOriginOption('US')">US</a>
+                        <a class="dropdown-item" href="#" onclick="setCountryOriginOption('ID')">ID</a>
+                    </div>
+                </div>      
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary dropdown-toggle" id="categoryDropdown" type="button" data-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">Category</button>
+
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="#" onclick="setCategoryOption('Layer-1-(L1)')">Layer 1 (L1)</a>
+                        <a class="dropdown-item" href="#" onclick="setCategoryOption('Cryptocurrency')">Cryptocurrency</a>
+                        <a class="dropdown-item" href="#" onclick="setCategoryOption('Ethereum Ecosystem')">Ethereum Ecosystem</a>
+                        <a class="dropdown-item" href="#" onclick="setCategoryOption('Smart Contract Platform')">Smart Contract Platform</a>
+                    </div>
+                </div>
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary dropdown-toggle" id="platformDropdown" type="button" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">Platform</button>
+                
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="#" onclick="setPlatformOption('bitcoin')">Bitcoin</a>
+                        <a class="dropdown-item" href="#" onclick="setPlatformOption('solana')">Solana</a>
+                        <a class="dropdown-item" href="#" onclick="setPlatformOption('ethereum')">Ethereum</a>
+                        <a class="dropdown-item" href="#" onclick="setPlatformOption('avalanche')">Avalanche</a>
+                    </div>
+                </div>  
+                <!-- Add a "Clear" button -->
+                <div class="input-group-append ml-auto" style="margin-left: 8px !important;">
+                    <button class="btn btn-outline-secondary" type="button" onclick="clearAllFilters()">Clear All</button>
+                </div>                              
+            </div>
+        </div>                   
+        <div class="table-responsive">
+            <table class="table" id="resultTable"></table>
+        </div>
+        <!-- <nav aria-label="Page navigation">
+            <ul class="pagination" id="pagination"></ul>
+        </nav> -->
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twbs-pagination/1.4.2/jquery.twbsPagination.min.js"></script>
+
+    <script>
+
+        // Establish a connection to the SPARQL endpoint
+        const sparqlEndpoint = "http://localhost:3030/cryptocurrency/query"; 
+
+        // Set the number of results per page
+        const resultsPerPage = 2000;
+
+        // Function to fetch and display results
+        async function fetchAndDisplayResults(
+            page = 1,
+            supplyStructureOption = 'All',
+            hashingAlgorithmOption = 'All',
+            countryOriginOption = 'All',
+            categoryOption = 'All',
+            platformOption = 'All') {
+            const offset = (page - 1) * resultsPerPage;
+
+            // Build filter conditions based on selected options
+            const supplyStructureFilter = (supplyStructureOption !== 'All')
+                ? `FILTER(?SupplyStructure = "${supplyStructureOption}")`
+                : '';
+
+            const hashingAlgorithmFilter = (hashingAlgorithmOption !== 'All')
+                ? `FILTER(?HashingAlgorithm = "${hashingAlgorithmOption}")`
+                : '';
+
+            const countryOriginFilter = (countryOriginOption !== 'All')
+                ? `FILTER(?CountryOrigin = "${countryOriginOption}")`
+                : '';
+
+            const categoryFilter = (categoryOption !== 'All')
+                ? `
+                {
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_categories> <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#${categoryOption}> .
+                }
+                UNION
+                {
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_categories> <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#${categoryOption}-.*> .
+                }
+                `
+                : '';
+
+            const platformFilter = (platformOption !== 'All')
+                ? `
+                {
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_platforms> <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#${platformOption}> .
+                }
+                UNION
+                {
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_platforms> <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#${platformOption}-.*> .
+                }
+                `
+                : '';
+
+            // Build the SPARQL query
+            const query = `
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+                SELECT DISTINCT ?Name ?Symbol ?Image ?CountryOrigin ?HashingAlgorithm ?SupplyStructure 
+                (GROUP_CONCAT(DISTINCT REPLACE(STRAFTER(str(?category), '#'), "-", " "); separator=", ") AS ?Categories)
+                (GROUP_CONCAT(DISTINCT REPLACE(STRAFTER(str(?platform), '#'), "-", " "); separator=", ") AS ?Platforms)                
+                WHERE {
+                    ?individual rdf:type owl:NamedIndividual .
+                    ?individual rdfs:label ?name .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_symbol> ?symbol .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_image> ?image .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_country_origin> ?countryOrigin .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_hashing_algorithm> ?hashingAlgorithm .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_supply_structure> ?supplyStructure .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_platforms> ?platform .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_categories> ?category .
+
+                    BIND(STR(?name) AS ?Name)
+                    BIND(STRAFTER(str(?symbol), '#') AS ?Symbol)
+                    BIND(STRAFTER(str(?image), '#') AS ?Image)
+                    
+                    BIND(STRAFTER(str(?countryOrigin), '#') AS ?CountryOriginRaw)
+                    BIND(REPLACE(?CountryOriginRaw, "origin-is-", "") AS ?CountryOriginRaw2)
+                    BIND(REPLACE(?CountryOriginRaw2, "-", " ") AS ?CountryOrigin)
+
+                    BIND(STRAFTER(str(?hashingAlgorithm), '#') AS ?HashingAlgorithmRaw)
+                    BIND(REPLACE(?HashingAlgorithmRaw, "-", " ") AS ?HashingAlgorithm)
+
+
+                    BIND(STRAFTER(str(?supplyStructure), '#') AS ?SupplyStructure)
+                    ${supplyStructureFilter}
+                    ${hashingAlgorithmFilter}
+                    ${countryOriginFilter}
+                    ${categoryFilter}
+                    ${platformFilter}
+                } 
+                GROUP BY ?Name ?Symbol ?Image ?CountryOrigin ?HashingAlgorithm ?SupplyStructure
+                ORDER BY ?Name
+                LIMIT ${resultsPerPage} OFFSET ${offset}           
+            `;
+
+            const response = await fetch(`${sparqlEndpoint}?query=${encodeURIComponent(query)}&format=json`);
+            const data = await response.json();
+
+            if (data.results && data.results.bindings) {
+                displayResults(data.results.bindings);
+
+                // Add pagination
+                const totalResults = parseInt(data.results.distinct, 10);
+                addPagination(page, Math.ceil(totalResults / resultsPerPage));
+            }
+        }
+
+        // Function to display results in a table
+        function displayResults(bindings) {
+            const columns = Object.keys(bindings[0]);
+            const tableHeader = `<thead><tr>${columns.map(column => `<th>${column}</th>`).join('')}</tr></thead>`;
+            const tableBody = `<tbody>${
+                bindings.map(row => {
+                    const columnsHtml = columns.map(column => `<td>${row[column].value}</td>`).join('');
+                    return `<tr>${columnsHtml}</tr>`;
+                }).join('')
+            }</tbody>`;
+
+            const tableHtml = `<table class="table">${tableHeader}${tableBody}</table>`;
+
+            document.getElementById('resultTable').innerHTML = tableHtml;
+        }
+
+        // Function to search cryptocurrency by name
+        function searchCryptocurrency() {
+            // Get the search input value
+            var searchInput = document.getElementById('searchInput').value;
+
+            // Get the selected values from dropdown filters
+            var supplyStructureOption = document.getElementById('supplyStructureDropdown').innerText.trim();
+            var hashingAlgorithmOption = document.getElementById('hashingAlgorithmDropdown').innerText.trim();
+            var countryOriginOption = document.getElementById('countryOriginDropdown').innerText.trim();
+            var categoryOption = document.getElementById('categoryDropdown').innerText.trim();
+            var platformOption = document.getElementById('platformDropdown').innerText.trim();
+
+            // When searchInput is null, set it to an empty string to show all results
+            if (searchInput === null) {
+                searchInput = "";
+            }
+
+            // Construct the SPARQL query with the search input and selected filter values
+            var query = `
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+                SELECT DISTINCT ?Name ?Symbol ?Image ?CountryOrigin ?HashingAlgorithm ?SupplyStructure 
+                (GROUP_CONCAT(DISTINCT REPLACE(STRAFTER(str(?category), '#'), "-", " "); separator=", ") AS ?Categories)
+                (GROUP_CONCAT(DISTINCT REPLACE(STRAFTER(str(?platform), '#'), "-", " "); separator=", ") AS ?Platforms)
+                WHERE {
+                    ?individual rdf:type owl:NamedIndividual .
+                    ?individual rdfs:label ?name .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_symbol> ?symbol .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_image> ?image .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_country_origin> ?countryOrigin .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_hashing_algorithm> ?hashingAlgorithm .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_supply_structure> ?supplyStructure .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_platforms> ?platform .
+                    ?individual <http://tubes-representasi-pengetahuan-1301218676-final-fix-no-space-7.com/cyrptocurrency.owl#has_categories> ?category .
+
+                    BIND(STR(?name) AS ?Name)
+                    BIND(STRAFTER(str(?symbol), '#') AS ?Symbol)
+                    BIND(STRAFTER(str(?image), '#') AS ?Image)
+                            
+                    BIND(STRAFTER(str(?countryOrigin), '#') AS ?CountryOriginRaw)
+                    BIND(REPLACE(?CountryOriginRaw, "origin-is-", "") AS ?CountryOriginRaw2)
+                    BIND(REPLACE(?CountryOriginRaw2, "-", " ") AS ?CountryOrigin)
+
+                    BIND(STRAFTER(str(?hashingAlgorithm), '#') AS ?HashingAlgorithmRaw)
+                    BIND(REPLACE(?HashingAlgorithmRaw, "-", " ") AS ?HashingAlgorithm)
+
+                    BIND(STRAFTER(str(?supplyStructure), '#') AS ?SupplyStructure)
+
+                    # Filter based on user input
+                    ${searchInput !== "" ? `
+                        FILTER (
+                            ?Name = "${searchInput}" || 
+                            STRSTARTS(?Name, "${searchInput}") || 
+                            CONTAINS(?Name, "${searchInput}") || 
+                            REGEX(?Name, "${searchInput}", "i")
+                        )
+                    ` : ""}
+                    
+                    # Apply dropdown filters
+                    ${supplyStructureOption !== 'Supply Structure' ? `FILTER(?SupplyStructure = "${supplyStructureOption}")` : ""}
+                    ${hashingAlgorithmOption !== 'Hashing Algorithm' ? `FILTER(?HashingAlgorithm = "${hashingAlgorithmOption}")` : ""}
+                    ${countryOriginOption !== 'Country Origin' ? `FILTER(?CountryOrigin = "${countryOriginOption}")` : ""}
+                    ${categoryOption !== 'Category' ? `FILTER(CONTAINS(?Categories, "${categoryOption}"))` : ""}
+                    ${platformOption !== 'Platform' ? `FILTER(CONTAINS(?Platforms, "${platformOption}"))` : ""}
+                } 
+                GROUP BY ?Name ?Symbol ?Image ?CountryOrigin ?HashingAlgorithm ?SupplyStructure
+                ORDER BY ?Name
+                LIMIT 1000
+            `;
+
+            // Perform the execution of the SPARQL query using fetch
+            fetch(sparqlEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'query=' + encodeURIComponent(query),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Handle the query results here
+                console.log(data);
+                // Update your HTML with the results as needed
+                updateTable(data.results.bindings);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to update the table with the results
+        function updateTable(results) {
+            // Get the table element
+            const table = document.getElementById('resultTable');
+
+            // Clear the existing rows in the table
+            table.innerHTML = '';
+
+            // Create the table header row
+            const headerRow = document.createElement('tr');
+            for (let key in results[0]) {
+                if (results[0].hasOwnProperty(key)) {
+                    const headerCell = document.createElement('th');
+                    headerCell.textContent = key;
+                    headerRow.appendChild(headerCell);
+                }
+            }
+            table.appendChild(headerRow);
+
+            // Iterate through results and update the table rows
+            for (let result of results) {
+                // Create a new table row
+                const row = document.createElement('tr');
+
+                // Iterate through result properties and create table cells
+                for (let key in result) {
+                    if (result.hasOwnProperty(key)) {
+                        // Create a new table cell
+                        const cell = document.createElement('td');
+
+                        // Set the content of the table cell
+                        cell.textContent = result[key].value;
+
+                        // Append the cell to the row
+                        row.appendChild(cell);
+                    }
+                }
+
+                // Append the row to the table
+                table.appendChild(row);
+            }
+        }
+
+        // Function to filter the table based on dropdowns values
+        let currentSupplyStructureOption = 'All';
+        function setSupplyStructureOption(option) {
+            currentSupplyStructureOption = option;
+            updateDropdownText('supplyStructureDropdown', option);
+            fetchAndDisplayResults(1, currentSupplyStructureOption, currentHashingAlgorithmOption, currentCountryOriginOption, currentCategoryOption, currentPlatformOption);
+        }
+
+        let currentHashingAlgorithmOption = 'All';
+        function setHashingAlgorithmOption(option) {
+            currentHashingAlgorithmOption = option;
+            updateDropdownText('hashingAlgorithmDropdown', option);
+            fetchAndDisplayResults(1, currentSupplyStructureOption, currentHashingAlgorithmOption, currentCountryOriginOption, currentCategoryOption, currentPlatformOption);
+        }
+
+        let currentCountryOriginOption = 'All';
+        function setCountryOriginOption(option) {
+            currentCountryOriginOption = option;
+            updateDropdownText('countryOriginDropdown', option);
+            fetchAndDisplayResults(1, currentSupplyStructureOption, currentHashingAlgorithmOption, currentCountryOriginOption, currentCategoryOption, currentPlatformOption);
+        }
+
+        let currentCategoryOption = 'All';
+        function setCategoryOption(option) {
+            currentCategoryOption = option;
+            updateDropdownText('categoryDropdown', option);
+            fetchAndDisplayResults(1, currentSupplyStructureOption, currentHashingAlgorithmOption, currentCountryOriginOption, currentCategoryOption, currentPlatformOption);
+        }
+
+        let currentPlatformOption = 'All';
+        function setPlatformOption(option) {
+            currentPlatformOption = option;
+            updateDropdownText('platformDropdown', option);
+            fetchAndDisplayResults(1, currentSupplyStructureOption, currentHashingAlgorithmOption, currentCountryOriginOption, currentCategoryOption, currentPlatformOption);
+        }
+
+        // Function to update the text of the dropdown button
+        function updateDropdownText(dropdownId, text) {
+            document.getElementById(dropdownId).innerText = text;
+            document.getElementById(dropdownId).value = text; // Add this line to reflect the selected option
+        }
+
+        // Function to clear all dropdown filters
+        function clearAllFilters() {
+            clearPlatformFilter();
+            clearCategoryFilter();
+            clearCountryOriginFilter();
+            clearHashingAlgorithmFilter();
+            clearSupplyStructureFilter();
+
+            fetchAndDisplayResults(1, 'All', 'All', 'All', 'All', 'All'); // Reset the query with default values
+        }
+
+        // Function to clear Platform dropdown filter
+        function clearPlatformFilter() {
+            document.getElementById('platformDropdown').innerText = 'Platform';
+            currentPlatformOption = 'All'; // Reset internal variable for Platform filter
+        }
+
+        // Function to clear Category dropdown filter
+        function clearCategoryFilter() {
+            document.getElementById('categoryDropdown').innerText = 'Category';
+            currentCategoryOption = 'All'; // Reset internal variable for Platform filter
+        }
+
+        // Function to clear Country Origin dropdown filter
+        function clearCountryOriginFilter() {
+            document.getElementById('countryOriginDropdown').innerText = 'Country Origin';
+            currentCountryOriginOption = 'All'; // Reset internal variable for Platform filter
+        }
+
+        // Function to clear Hashing Algorithm dropdown filter
+        function clearHashingAlgorithmFilter() {
+            document.getElementById('hashingAlgorithmDropdown').innerText = 'Hashing Algorithm';
+            currentHashingAlgorithmOption = 'All'; // Reset internal variable for Platform filter
+        }
+
+        // Function to clear Supply Structure dropdown filter
+        function clearSupplyStructureFilter() {
+            document.getElementById('supplyStructureDropdown').innerText = 'Supply Structure';
+            currentHashingAlgorithmOption = 'All'; // Reset internal variable for Platform filter
+        }
+
+        // function addPagination(currentPage, totalPages) {
+        //     const paginationElement = document.getElementById('pagination');
+        //     paginationElement.innerHTML = '';
+
+        //     const pagination = document.createElement('ul');
+        //     pagination.classList.add('pagination');
+
+        //     for (let i = 1; i <= totalPages; i++) {
+        //         const li = document.createElement('li');
+        //         li.classList.add('page-item', i === currentPage ? 'active' : null);
+
+        //         const a = document.createElement('a');
+        //         a.classList.add('page-link');
+        //         a.href = '#';
+        //         a.innerText = i;
+        //         a.setAttribute('data-page', i); // Set data attribute
+
+        //         a.addEventListener('click', function (event) {
+        //             const page = parseInt(event.target.getAttribute('data-page'), 10);
+        //             fetchAndDisplayResults(page);
+        //         });
+
+        //         li.appendChild(a);
+        //         pagination.appendChild(li);
+        //     }
+        //     paginationElement.appendChild(pagination);
+        // }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetchAndDisplayResults();
+        });
+    </script>
+
+</body>
+
+</html>
